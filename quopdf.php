@@ -31,9 +31,38 @@ include('config.php');
 $sql = "INSERT INTO quotation(client_name, email, address, total) VALUES ('$name', '$email', '".$pdfData['address']."',".$pdfData['total'].")";
 
 // create PDF document
-$pdf = new FPDF();
+class PDF extends FPDF {
+	function Header(){
+		if($this->PageNo()==1){
+		    $this->Image("img/pdf.jpg", 0, 0, 210,300);
+		}
+		else{
+			$this->Image("img/pdfend.jpg", 0, 0, 210,300);
+		}
+		
+	}
+	function Footer(){
+		
+		//Go to 1.5 cm from bottom
+		$this->SetY(-28);
+				
+		$this->SetFont('Arial','',8);
+		
+		//width = 0 means the cell is extended up to the right margin
+		$this->Cell(0,10,'Page '.$this->PageNo()." / {pages}",0,0,'C');
+	}
+}
+
+
+//A4 width : 219mm
+//default margin : 10mm each side
+//writable horizontal : 219-(10*2)=189mm
+
+$pdf = new PDF('P','mm','A4'); //use new class
+
+//define new alias for total page numbers
+$pdf->AliasNbPages('{pages}');
 $pdf->AddPage();
-$pdf->Image("img/pdf.jpg", 0, 0, 210,300);
 // add address and email
 $pdf->SetFont('Arial', 'B', 20);
 $pdf->SetTextColor(255, 0, 0); // set font color to red
@@ -68,10 +97,10 @@ $pdf->Cell(0, 10, $quotationType, 0, 1, 'C');
 
 $pdf->SetTextColor(255, 0, 0); // set font color to red
 $pdf->SetFont('Arial', '', 12);
-$pdf->Cell(15, 10, 'S.No:', 1, 0, 'C');
-$pdf->Cell(100, 10, 'Description', 1, 0, 'C');
-$pdf->Cell(15, 10, 'Qty', 1, 0, 'C');
-$pdf->Cell(30, 10, 'Unit price', 1, 0, 'C');
+$pdf->Cell(20, 10, 'S.No:', 1, 0, 'C');
+$pdf->Cell(50, 10, 'Description', 1, 0, 'C');
+$pdf->Cell(40, 10, 'Qty', 1, 0, 'C');
+$pdf->Cell(50, 10, 'Unit price', 1, 0, 'C');
 $pdf->Cell(0, 10, 'Total', 1, 0, 'C'); // add a new column for row total
 $pdf->Ln();
 
@@ -79,14 +108,73 @@ $pdf->Ln();
 $pdf->SetTextColor(0, 0, 255); // blue color
 $srNo = 1;
 foreach ($pdfData['products'] as $product) {
-  $pdf->Cell(15, 10, $srNo++, 1,0,'C');
-  $productTotal = $product['quantity'] * $product['price']; // calculate the row total
-  $pdf->Cell(100, 10, $product['product'], 1,0,'C');
-  $pdf->Cell(15, 10, $product['quantity'], 1,0,'C');
-  $pdf->Cell(30, 10, 'Rs.'.$product['price'], 1,0,'R');
-  $pdf->Cell(0, 10, 'Rs.'.$productTotal, 1,0,'R'); // display the row total
-  $pdf->Ln();
-  }
+	$cellWidth=50;//wrapped cell width
+	$cellHeight=5;//normal one-line cell height
+	
+	//check whether the text is overflowing
+	if($pdf->GetStringWidth($product['product']) < $cellWidth){
+		//if not, then do nothing
+		$line=1;
+	}else{
+		//if it is, then calculate the height needed for wrapped cell
+		//by splitting the text to fit the cell width
+		//then count how many lines are needed for the text to fit the cell
+		
+		$textLength=strlen($product['product']);	//total text length
+		$errMargin=10;		//cell width error margin, just in case
+		$startChar=0;		//character start position for each line
+		$maxChar=0;			//maximum character in a line, to be incremented later
+		$textArray=array();	//to hold the strings for each line
+		$tmpString="";		//to hold the string for a line (temporary)
+		
+		while($startChar < $textLength){ //loop until end of text
+			//loop until maximum character reached
+			while( 
+			$pdf->GetStringWidth( $tmpString ) < ($cellWidth-$errMargin) &&
+			($startChar+$maxChar) < $textLength ) {
+				$maxChar++;
+				$tmpString=substr($product['product'],$startChar,$maxChar);
+			}
+			//move startChar to next line
+			$startChar=$startChar+$maxChar;
+			//then add it into the array so we know how many line are needed
+			array_push($textArray,$tmpString);
+			//reset maxChar and tmpString
+			$maxChar=0;
+			$tmpString='';
+			
+		}
+		//get number of line
+		$line=count($textArray);
+	}
+	
+	//write the cells
+	$pdf->Cell(20,($line * $cellHeight),$srNo++,1,0,'C'); //adapt height to number of lines
+    $productTotal = $product['quantity'] * $product['price']; // calculate the row total
+	
+	//use MultiCell instead of Cell
+	//but first, because MultiCell is always treated as line ending, we need to 
+	//manually set the xy position for the next cell to be next to it.
+	//remember the x and y position before writing the multicell
+	$xPos=$pdf->GetX();
+	$yPos=$pdf->GetY();
+  $pdf->setFillColor(255,255,255); 
+	$pdf->MultiCell($cellWidth,$cellHeight,$product['product'],'LRT',0,'C');
+	
+	//return the position for next cell next to the multicell
+	//and offset the x with multicell width
+	$pdf->SetXY($xPos + $cellWidth , $yPos);
+	
+	$pdf->Cell(40,($line * $cellHeight),$product['quantity'],1,0,'C'); //adapt height to number of lines
+    $pdf->Cell(50,($line * $cellHeight),'Rs.'.$product['price'],1,0,'R'); //adapt height to number of lines
+    $pdf->Cell(0,($line * $cellHeight),'Rs.'.$productTotal, 1,0,'R'); //adapt height to number of lines
+	
+	
+    $pdf->Ln();
+	
+	
+}
+
   // add totals
   $pdf->SetFont('Arial', '', 13);
   $pdf->Cell(100, 10, 'Sub Total:', 1, 0, 'R');
@@ -111,9 +199,13 @@ $pdf->SetTextColor(255, 0, 0); // set font color to red
 $pdf->Cell(0, 10, 'Terms & Conditions :', 0, 1);
 $pdf->SetFont('Arial', '', 9);
 $pdf->SetTextColor(0, 0, 255); // blue color
-$pdf->Cell(0, 3, '  * 100% Payment after delivery the materials', 0, 1);
-$pdf->Cell(0, 3, '  * Cash/Cheque/NEFT/UPI are accepted', 0, 1);
-$pdf->Cell(0, 3, '  * Warranty based material manufacturing company', 0, 1);
+// Define the text to be displayed
+$terms = $_POST['term'];
+
+// Loop through each <li> element and add it to the text
+foreach ($terms as $term) {
+	$pdf->Cell(0, 3, $term, 0, 1);
+  }
 $pdf->Cell(0, 13, '', 0, 1);
 $pdf->SetFont('Arial', 'B', 12);
 $pdf->SetTextColor(255, 0, 0); // set font color to red
@@ -125,10 +217,11 @@ $pdf->Cell(0, 3, '  Bank Name : Central Bank of India', 0, 1);
 $pdf->Cell(0, 3, '  Account Number : 5369414371', 0, 1);
 $pdf->Cell(0, 3, '  IFSC Code : CBIN0282106', 0, 1);
 $pdf->Cell(0, 3, '  Branch Name : NANJUNDAPURAM', 0, 1);
+$pdf->Cell(0, 10, '*This is computer generated invoice no signature required(Authorized by ELETECHTRONICS)', 0, 0, 'C');
 
 // output PDF to browser
 // generate filename
-$filename = 'uploads/quotation/ingst/'.'INgst '.$id.' '.$name . '.pdf';
+$filename = 'uploads/quotation/ingst/'.'QT '.$id.' '.$name . '.pdf';
 
 // output PDF to file
 $pdf->Output($filename, 'F');

@@ -133,3 +133,41 @@ form.addEventListener('submit', (event) => {
   // submit the form
   form.submit();
 });
+
+
+
+// Get the "Add New Term" button and the terms list
+const addTermBtn = document.getElementById("addTermBtn");
+const termsList = document.getElementById("termsList");
+
+// Add an event listener to the "Add New Term" button
+addTermBtn.addEventListener("click", () => {
+  // Create a new list item and input field
+  const newTermLi = document.createElement("li");
+  const newTermInput = document.createElement("input");
+  newTermInput.type = "text";
+  newTermInput.name = "term[]";
+  newTermInput.value = "";
+
+  // Create a new "Remove" button
+  const newRemoveBtn = document.createElement("button");
+  newRemoveBtn.type = "button";
+  newRemoveBtn.className = "removeTermBtn";
+  newRemoveBtn.textContent = "Remove";
+
+  // Add the new input field and "Remove" button to the list item
+  newTermLi.appendChild(newTermInput);
+  newTermLi.appendChild(newRemoveBtn);
+
+  // Add the new list item to the terms list
+  termsList.appendChild(newTermLi);
+});
+
+// Add an event listener to the terms list to handle clicks on the "Remove" button
+termsList.addEventListener("click", (event) => {
+  if (event.target.classList.contains("removeTermBtn")) {
+    // Remove the list item that contains the "Remove" button
+    const li = event.target.closest("li");
+    li.parentNode.removeChild(li);
+  }
+});

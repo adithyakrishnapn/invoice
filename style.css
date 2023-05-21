@@ -145,7 +145,7 @@ button[type="button"],
 button[type="submit"]{
     border: 0px;
     border-radius: 0.2cm;
-	margin-top: 20px;
+	margin: 10px;
 	background-color: #09e610;
 	color: white;
 	padding: 12px 20px;

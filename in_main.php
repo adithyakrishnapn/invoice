@@ -112,6 +112,16 @@ if ($result->num_rows > 0) {
         <label for="daddress">Delivery-Address:</label>
         <textarea id="daddress" name="daddress" required></textarea>
       </div>
+	
+	  <div style="background-color: grey; padding: 15px; border-radius: 0.2cm;">
+  <h2>Terms and Conditions</h2>
+  <ul id="termsList">
+  <li><input type="text" name="term[]" value="Term 1"><button type="button" class="removeTermBtn">Remove</button></li>
+  <li><input type="text" name="term[]" value="Term 2"><button type="button" class="removeTermBtn">Remove</button></li>
+</ul>
+<button type="button" id="addTermBtn">Add New Term</button>
+
+</div>  
 
 
  <div class="product-section">

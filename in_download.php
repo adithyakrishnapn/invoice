@@ -154,7 +154,7 @@ if ($search) {
 
     <h1 style="text-align: center; background-colo: white;">SEE ALL PDF's</h1><br>
     <div class="container">
-		<a href="in_download.php" class="btn">GST Included</a>
+		<a href="download.php" class="btn">GST Included</a>
 		<a href="in_download.php" class="btn">GST Excluded</a>
 	</div><br>
   <h3 style="text-align: center; color: white;">GST EXCLUDED</h3><br>
